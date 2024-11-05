@@ -100,25 +100,28 @@ void insert_at_index(struct student **head, int index, char *name, int id, char 
     {
         new_student->next = *head;
         *head = new_student;
-        return;
-    }
 
-    struct student *current = *head;
-    for (int i = 0; i < index - 1 && current != NULL; i++)
-    {
-        current = current->next;
     }
-    if (current == NULL)
+    else
     {
-        printf("Index out of bounds.\n");
-        free(new_student->name);
-        free(new_student->address);
-        free(new_student);
-        return;
-    }
 
-    new_student->next = current->next;
-    current->next = new_student;
+        struct student *current = *head;
+        for (int i = 0; i < index - 1 && current != NULL; i++)
+        {
+            current = current->next;
+        }
+        if (current == NULL)
+        {
+            printf("Index out of bounds.\n");
+            free(new_student->name);
+            free(new_student->address);
+            free(new_student);
+            return;
+        }
+
+        new_student->next = current->next;
+        current->next = new_student;
+    }
 }
 void delete_at_index(struct student **head, int index)
 {
@@ -149,35 +152,67 @@ void delete_at_index(struct student **head, int index)
         return;
     }
 
-    struct student *next = temp->next->next;
+    struct student *next_ptr = temp->next->next;
     free(temp->next->name);
     free(temp->next->address);
     free(temp->next);
-    temp->next = next;
+    temp->next = next_ptr;
+}
+
+struct student* copy_list(struct student *head)
+{
+    if (!head) return NULL;
+    else
+    {
+
+    struct student *new_head = NULL, *tail = NULL;
+    for (struct student *current = head; current != NULL; current = current->next)
+    {
+        struct student *new_student = create_student(current->name, current->id, current->address);
+        if (!new_student)
+        {
+            printf("Memory allocation failed during list copy.\n");
+            return NULL;
+        }
+        if (!new_head)
+        {
+            new_head = tail = new_student;
+        }
+        else
+        {
+            tail->next = new_student;
+            tail = new_student;
+        }
+    }
+    return new_head;
+    }
 }
 
 void display_sorted_by_name(struct student *head)
 {
-    if (!head)
+    struct student *sorted = copy_list(head);
+    if (!sorted)
     {
         printf("No students to display.\n");
-        return;
-    }
 
-    struct student *sorted = NULL;
-    struct student *current = head;
+    }
+    else
+    {
+
+    struct student *current = sorted;
+    struct student *sorted_list = NULL;
 
     while (current != NULL)
     {
         struct student *next = current->next;
-        if (sorted == NULL || strcmp(sorted->name, current->name) >= 0)
+        if (!sorted_list || strcmp(sorted_list->name, current->name) >= 0)
         {
-            current->next = sorted;
-            sorted = current;
+            current->next = sorted_list;
+            sorted_list = current;
         }
         else
         {
-            struct student *s = sorted;
+            struct student *s = sorted_list;
             while (s->next != NULL && strcmp(s->next->name, current->name) < 0)
             {
                 s = s->next;
@@ -187,9 +222,11 @@ void display_sorted_by_name(struct student *head)
         }
         current = next;
     }
-    display_students(sorted);
 
-    current = sorted;
+    display_students(sorted_list);
+
+
+    current = sorted_list;
     while (current)
     {
         struct student *temp = current;
@@ -199,29 +236,33 @@ void display_sorted_by_name(struct student *head)
         free(temp);
     }
 }
+}
 
 void display_sorted_by_id(struct student *head)
 {
-    if (!head)
+    struct student *sorted = copy_list(head);
+    if (!sorted)
     {
         printf("No students to display.\n");
-        return;
-    }
 
-    struct student *sorted = NULL;
-    struct student *current = head;
+    }
+    else
+    {
+
+    struct student *current = sorted;
+    struct student *sorted_list = NULL;
 
     while (current != NULL)
     {
         struct student *next = current->next;
-        if (sorted == NULL || sorted->id > current->id)
+        if (!sorted_list || sorted_list->id > current->id)
         {
-            current->next = sorted;
-            sorted = current;
+            current->next = sorted_list;
+            sorted_list = current;
         }
         else
         {
-            struct student *s = sorted;
+            struct student *s = sorted_list;
             while (s->next != NULL && s->next->id < current->id)
             {
                 s = s->next;
@@ -232,10 +273,10 @@ void display_sorted_by_id(struct student *head)
         current = next;
     }
 
-    display_students(sorted);
+    display_students(sorted_list);
 
 
-    current = sorted;
+    current = sorted_list;
     while (current)
     {
         struct student *temp = current;
@@ -243,6 +284,7 @@ void display_sorted_by_id(struct student *head)
         free(temp->name);
         free(temp->address);
         free(temp);
+    }
     }
 }
 
@@ -330,7 +372,8 @@ int main()
         {
             display_sorted_by_name(head);
         }
-        else if (choice == 7) {
+        else if (choice == 7)
+        {
             display_sorted_by_id(head);
         }
         else if (choice == 8)
@@ -339,7 +382,7 @@ int main()
         }
         else
         {
-            printf("Invalid choice, please try again.\n");
+            printf("Invalid choice.\n");
         }
     }
     struct student *current = head;
@@ -354,4 +397,3 @@ int main()
 
     return 0;
 }
-
