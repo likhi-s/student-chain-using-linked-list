@@ -10,14 +10,13 @@ struct student
     struct student *next;
 };
 
-
 struct student* create_student(char *name, int id, char *address)
 {
     struct student *new_student = (struct student*)malloc(sizeof(struct student));
     if (!new_student)
     {
         printf("Memory allocation failed\n");
-
+        return NULL;
     }
     new_student->name = (char*)malloc(strlen(name) + 1);
     new_student->address = (char*)malloc(strlen(address) + 1);
@@ -28,7 +27,6 @@ struct student* create_student(char *name, int id, char *address)
     return new_student;
 }
 
-
 void display_students(struct student *head)
 {
     if (!head)
@@ -36,21 +34,21 @@ void display_students(struct student *head)
         printf("No students to display.\n");
         return;
     }
-    for (struct student *current = head; current; current = current->next)
+    struct student *current = head;
+    while (current)
     {
         printf("Name: %s, ID: %d, Address: %s\n", current->name, current->id, current->address);
+        current = current->next;
     }
 }
-
 
 void cut_and_swap(struct student **head, char *name1, char *name2)
 {
     struct student *prev1 = NULL, *prev2 = NULL, *node1 = *head, *node2 = *head;
 
-
     while (node1 && strcmp(node1->name, name1) != 0)
     {
-        prev1 = node1;//node1 is current node
+        prev1 = node1;
         node1 = node1->next;
     }
     while (node2 && strcmp(node2->name, name2) != 0)
@@ -64,35 +62,19 @@ void cut_and_swap(struct student **head, char *name1, char *name2)
         printf("One or both students not found.\n");
         return;
     }
+    if (node1 == node2) return;
 
+    if (prev1) prev1->next = node2;
+    else *head = node2;
 
-    if (node1 == node2)
-    {
+    if (prev2) prev2->next = node1;
+    else *head = node1;
 
-        return;
-    }
-
-
-    if (prev1)
-    {
-        prev1->next = node2;
-    }
-    else
-    {
-        *head = node2;
-    }
-    if (prev2)
-    {
-        prev2->next = node1;
-    }
-    else
-    {
-        *head = node1;
-    }
     struct student *temp = node1->next;
     node1->next = node2->next;
     node2->next = temp;
 }
+
 void insert_at_index(struct student **head, int index, char *name, int id, char *address)
 {
     struct student *new_student = create_student(name, id, address);
@@ -100,17 +82,14 @@ void insert_at_index(struct student **head, int index, char *name, int id, char 
     {
         new_student->next = *head;
         *head = new_student;
-
-    }
-    else
+    } else
     {
-
         struct student *current = *head;
-        for (int i = 0; i < index - 1 && current != NULL; i++)
+        for (int i = 0; i < index - 1 && current; i++)
         {
             current = current->next;
         }
-        if (current == NULL)
+        if (!current)
         {
             printf("Index out of bounds.\n");
             free(new_student->name);
@@ -118,11 +97,11 @@ void insert_at_index(struct student **head, int index, char *name, int id, char 
             free(new_student);
             return;
         }
-
         new_student->next = current->next;
         current->next = new_student;
     }
 }
+
 void delete_at_index(struct student **head, int index)
 {
     if (*head == NULL)
@@ -132,7 +111,6 @@ void delete_at_index(struct student **head, int index)
     }
 
     struct student *temp = *head;
-
     if (index == 0)
     {
         *head = temp->next;
@@ -141,12 +119,12 @@ void delete_at_index(struct student **head, int index)
         free(temp);
         return;
     }
-    for (int i = 0; temp != NULL && i < index - 1; i++)
+    for (int i = 0; temp && i < index - 1; i++)
     {
         temp = temp->next;
     }
 
-    if (temp == NULL || temp->next == NULL)
+    if (!temp || !temp->next)
     {
         printf("Index out of bounds.\n");
         return;
@@ -159,74 +137,72 @@ void delete_at_index(struct student **head, int index)
     temp->next = next_ptr;
 }
 
-struct student* copy_list(struct student *head)
+void save_to_file(struct student *head, const char *filename)
 {
-    if (!head) return NULL;
-    else
+    FILE *file = fopen(filename, "a");
+    if (!file)
     {
+        printf("Could not open file for writing.\n");
+        return;
+    }
+    struct student *current = head;
+    while (current)
+    {
+        fprintf(file, "%d %s %s\n", current->id, current->name, current->address);
+        current = current->next;
+    }
+    fclose(file);
+    printf("Data saved to file successfully.\n");
+}
+
+void display_file_data(const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    if (!file)
+    {
+        printf("Could not open file for reading.\n");
+        return;
+    }
+
+    int id;
+    char name[50], address[50];
+    printf("Data in file:\n");
+    while (fscanf(file, "%d %s %s", &id, name, address) != EOF)
+    {
+        printf("ID: %d, Name: %s, Address: %s\n", id, name, address);
+    }
+    fclose(file);
+}
+
+void sync_from_file(struct student **head, const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    if (!file)
+    {
+        printf("Could not open file for reading.\n");
+        return;
+    }
 
     struct student *new_head = NULL, *tail = NULL;
-    for (struct student *current = head; current != NULL; current = current->next)
+    int id;
+    char name[50], address[50];
+
+    while (fscanf(file, "%d %s %s", &id, name, address) != EOF)
     {
-        struct student *new_student = create_student(current->name, current->id, current->address);
-        if (!new_student)
-        {
-            printf("Memory allocation failed during list copy.\n");
-            return NULL;
-        }
+        struct student *new_student = create_student(name, id, address);
         if (!new_head)
         {
             new_head = tail = new_student;
-        }
-        else
+        } else
         {
             tail->next = new_student;
             tail = new_student;
         }
     }
-    return new_head;
-    }
-}
 
-void display_sorted_by_name(struct student *head)
-{
-    struct student *sorted = copy_list(head);
-    if (!sorted)
-    {
-        printf("No students to display.\n");
+    fclose(file);
 
-    }
-    else
-    {
-
-    struct student *current = sorted;
-    struct student *sorted_list = NULL;
-
-    while (current != NULL)
-    {
-        struct student *next = current->next;
-        if (!sorted_list || strcmp(sorted_list->name, current->name) >= 0)
-        {
-            current->next = sorted_list;
-            sorted_list = current;
-        }
-        else
-        {
-            struct student *s = sorted_list;
-            while (s->next != NULL && strcmp(s->next->name, current->name) < 0)
-            {
-                s = s->next;
-            }
-            current->next = s->next;
-            s->next = current;
-        }
-        current = next;
-    }
-
-    display_students(sorted_list);
-
-
-    current = sorted_list;
+    struct student *current = *head;
     while (current)
     {
         struct student *temp = current;
@@ -235,75 +211,28 @@ void display_sorted_by_name(struct student *head)
         free(temp->address);
         free(temp);
     }
-}
-}
 
-void display_sorted_by_id(struct student *head)
-{
-    struct student *sorted = copy_list(head);
-    if (!sorted)
-    {
-        printf("No students to display.\n");
-
-    }
-    else
-    {
-
-    struct student *current = sorted;
-    struct student *sorted_list = NULL;
-
-    while (current != NULL)
-    {
-        struct student *next = current->next;
-        if (!sorted_list || sorted_list->id > current->id)
-        {
-            current->next = sorted_list;
-            sorted_list = current;
-        }
-        else
-        {
-            struct student *s = sorted_list;
-            while (s->next != NULL && s->next->id < current->id)
-            {
-                s = s->next;
-            }
-            current->next = s->next;
-            s->next = current;
-        }
-        current = next;
-    }
-
-    display_students(sorted_list);
-
-
-    current = sorted_list;
-    while (current)
-    {
-        struct student *temp = current;
-        current = current->next;
-        free(temp->name);
-        free(temp->address);
-        free(temp);
-    }
-    }
+    *head = new_head;
+    printf("Data synchronized from file successfully.\n");
 }
 
-int main()
-{
+int main() {
     struct student *head = NULL;
     int choice;
+    const char *filename = "likhi.txt";
 
     while (1)
     {
-        printf("\nOptions:\n1. Create a chain.\n2. Cut and reconnect students using swap\n3. Display students\n4. Insert node by index\n5. Delete node by index\n6. Display sorted by name\n7. Display sorted by ID\n8. Exit\nEnter your choice: ");
+        printf("\nOptions:\n1. Create a chain\n2. Cut and reconnect students using swap\n3. Display students\n");
+        printf("4. Insert node by index\n5. Delete node by index\n6. Save to file\n7. Display file data\n");
+        printf("8. Sync from file\n9. Exit\nEnter your choice: ");
         scanf("%d", &choice);
 
         if (choice == 1)
         {
             int n;
-            printf("Number of students required: ");
+            printf("Number of students to add: ");
             scanf("%d", &n);
-
             for (int i = 0; i < n; i++)
             {
                 char name[50], address[50];
@@ -318,7 +247,7 @@ int main()
 
                 struct student *new_student = create_student(name, id, address);
 
-                if (head == NULL)
+                if (!head)
                 {
                     head = new_student;
                 }
@@ -337,9 +266,9 @@ int main()
         else if (choice == 2)
         {
             char name1[50], name2[50];
-            printf("Enter the name to cut: ");
+            printf("Enter the first student's name to cut: ");
             scanf("%s", name1);
-            printf("Enter the name to link: ");
+            printf("Enter the second student's name to link: ");
             scanf("%s", name2);
             cut_and_swap(&head, name1, name2);
         }
@@ -370,13 +299,17 @@ int main()
         }
         else if (choice == 6)
         {
-            display_sorted_by_name(head);
+            save_to_file(head, filename);
         }
         else if (choice == 7)
         {
-            display_sorted_by_id(head);
+            display_file_data(filename);
         }
         else if (choice == 8)
+        {
+            sync_from_file(&head, filename);
+        }
+        else if (choice == 9)
         {
             break;
         }
@@ -385,6 +318,7 @@ int main()
             printf("Invalid choice.\n");
         }
     }
+
     struct student *current = head;
     while (current)
     {
